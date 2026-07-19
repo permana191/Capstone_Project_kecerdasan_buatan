@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISION CORE - AI Quality Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-modern-dark">
+
+<div id="loader-overlay" class="loader-overlay d-none">
+    <div class="text-center bg-glass-panel p-5 rounded-4 shadow-lg">
+        <div class="spinner-grow text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="fw-bold text-white mb-2">Memproses Citra Logam...</h4>
+        <p class="text-muted mb-0">Mengeksekusi Jaringan Saraf Tiruan (Neural Network)</p>
+    </div>
+</div>
+
+<nav class="navbar px-4 py-3 sticky-top glass-navbar">
+    <div class="d-flex justify-content-between w-100 align-items-center">
+        <div class="brand fw-bold text-white fs-4 tracking-tight">
+            <div class="logo-box bg-primary text-white d-inline-flex justify-content-center align-items-center rounded-3 me-2" style="width: 35px; height: 35px;">
+                <i class="fa-solid fa-microchip fs-6"></i>
+            </div>
+            VISION <span class="text-primary">CORE</span>
+        </div>
+        <div>
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill shadow-sm">
+                <i class="fa-solid fa-satellite-dish me-2 pulse-anim"></i> Sistem Aktif & Terhubung
+            </span>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 mt-4 pb-5">
+    
+    <!-- TOP STATISTIK CARDS -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card p-3 rounded-4 d-flex align-items-center border-start border-4 border-primary">
+                <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-3 fs-3 me-3"><i class="fa-solid fa-layer-group"></i></div>
+                <div><p class="text-muted mb-0 small text-uppercase fw-semibold">Total Dipindai</p><h3 class="fw-bold text-white mb-0">{{ stats.total }}</h3></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card p-3 rounded-4 d-flex align-items-center border-start border-4 border-success">
+                <div class="icon-box bg-success bg-opacity-10 text-success rounded-3 fs-3 me-3"><i class="fa-solid fa-check-circle"></i></div>
+                <div><p class="text-muted mb-0 small text-uppercase fw-semibold">Normal (OK)</p><h3 class="fw-bold text-white mb-0">{{ stats.normal }}</h3></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card p-3 rounded-4 d-flex align-items-center border-start border-4 border-danger">
+                <div class="icon-box bg-danger bg-opacity-10 text-danger rounded-3 fs-3 me-3"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div><p class="text-muted mb-0 small text-uppercase fw-semibold">Cacat (Defect)</p><h3 class="fw-bold text-white mb-0">{{ stats.defect }}</h3></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card p-3 rounded-4 d-flex align-items-center border-start border-4 border-warning">
+                <div class="icon-box bg-warning bg-opacity-10 text-warning rounded-3 fs-3 me-3"><i class="fa-solid fa-user-magnifying-glass"></i></div>
+                <div><p class="text-muted mb-0 small text-uppercase fw-semibold">Inspeksi Manual</p><h3 class="fw-bold text-white mb-0">{{ stats.review }}</h3></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 flex-grow-1">
+        <!-- SIDEBAR KIRI -->
+        <div class="col-lg-3 d-flex flex-column gap-4">
+            
+            <div class="glass-panel p-4 rounded-4">
+                <h6 class="fw-bold text-white mb-4"><i class="fa-solid fa-sliders text-primary me-2"></i> Parameter Kontrol AI</h6>
+                <form action="/" method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-semibold">Metode Analisis</label>
+                        <select class="form-select custom-input text-white border-secondary" name="model_choice" required>
+                            <option value="compare">⚖️ Komparasi Head-to-Head</option>
+                            <option value="xception">🚀 Xception (Cepat & Akurat)</option>
+                            <option value="resnet50">🧠 ResNet50 (Akurasi Tinggi)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-semibold">Unggah Citra Logam (Bisa Multi-File / Batch)</label>
+                        <!-- ATRIBUT 'MULTIPLE' DITAMBAHKAN DI SINI -->
+                        <input class="form-control custom-input text-white border-secondary" type="file" name="file" accept="image/jpeg, image/png, image/jpg" multiple required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-3 btn-glow">
+                        <i class="fa-solid fa-magnifying-glass me-2"></i> Eksekusi AI
+                    </button>
+                </form>
+            </div>
+
+            <!-- Panel Grafik (Diperbarui untuk 3 Kategori) -->
+            <div class="glass-panel p-4 rounded-4 flex-grow-1 d-flex flex-column justify-content-center">
+                <h6 class="fw-bold text-white mb-4 text-center">Distribusi Kualitas Produksi</h6>
+                <div style="height: 180px; width: 100%; position: relative;"><canvas id="qualityChart"></canvas></div>
+                
+                <h6 class="fw-bold text-white mt-4 mb-3 text-center">Rata-Rata Kecepatan (Detik)</h6>
+                <div style="height: 150px; width: 100%; position: relative;"><canvas id="speedChart"></canvas></div>
+            </div>
+        </div>
+
+        <!-- MAIN DASHBOARD -->
+        <div class="col-lg-9">
+            <div class="glass-panel p-4 rounded-4 h-100 d-flex flex-column">
+                
+                {% if mode == 'batch' %}
+                <!-- VIEW: BATCH PROCESSING (MASS SCAN) -->
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom border-secondary">
+                    <div class="icon-box bg-success bg-opacity-10 text-success rounded-circle fs-4 me-3"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <div>
+                        <h4 class="fw-bold text-white mb-0">Laporan Pemindaian Massal (Batch Processing)</h4>
+                        <span class="text-muted small">Mesin AI Aktif: {{ model_used }} | Total Diproses: {{ batch_results|length }} Gambar</span>
+                    </div>
+                </div>
+                
+                <div class="table-responsive flex-grow-1" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-dark table-hover table-striped align-middle">
+                        <thead class="table-secondary sticky-top">
+                            <tr>
+                                <th>#</th>
+                                <th>Nama File</th>
+                                <th>Status Deteksi</th>
+                                <th>Keyakinan AI</th>
+                                <th>Waktu (s)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in batch_results %}
+                            <tr>
+                                <td class="text-muted">{{ loop.index }}</td>
+                                <td>{{ item.file }}</td>
+                                <td>
+                                    <!-- Logika Warna Human in the loop di Batch -->
+                                    <span class="badge px-3 py-2 
+                                        {% if 'Cacat' in item.status %}bg-danger
+                                        {% elif 'Manual' in item.status %}bg-warning text-dark
+                                        {% else %}bg-success{% endif %}">
+                                        {{ item.status }}
+                                    </span>
+                                </td>
+                                <td class="{% if item.conf < 85.0 %}text-warning fw-bold{% else %}text-info{% endif %}">{{ item.conf }}%</td>
+                                <td class="text-warning">{{ item.time }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% elif mode == 'compare' %}
+                <!-- VIEW: HEAD TO HEAD -->
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom border-secondary">
+                    <div class="icon-box bg-info bg-opacity-10 text-info rounded-circle fs-4 me-3"><i class="fa-solid fa-code-compare"></i></div>
+                    <h4 class="fw-bold text-white mb-0">Komparasi Kinerja AI</h4>
+                </div>
+                
+                <div class="row g-4 flex-grow-1">
+                    <!-- ResNet50 Card -->
+                    <div class="col-md-6">
+                        <div class="result-card h-100 p-4 rounded-4 d-flex flex-column bg-gradient-dark border border-secondary border-opacity-50">
+                            <h5 class="fw-bold text-white text-center mb-4">ResNet50</h5>
+                            <div class="text-center mb-4">
+                                <div class="img-wrapper rounded-4 p-2 bg-dark d-inline-block">
+                                    <img src="{{ res_data.hm }}" class="img-fluid rounded-3 scanner-fx" style="max-height: 250px; object-fit: contain;">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <h4 class="fw-bold text-center mb-4 py-2 bg-dark rounded-3 
+                                    {% if 'Cacat' in res_data.class %}text-danger{% elif 'Manual' in res_data.class %}text-warning{% else %}text-success{% endif %}">
+                                    {{ res_data.class }}
+                                </h4>
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="metric-glass p-3 rounded-3 text-center">
+                                            <p class="text-muted small fw-semibold mb-1">Keyakinan</p>
+                                            <h4 class="text-white fw-bold mb-0">{{ res_data.conf }}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-glass p-3 rounded-3 text-center">
+                                            <p class="text-muted small fw-semibold mb-1">Kecepatan</p>
+                                            <h4 class="text-warning fw-bold mb-0">{{ res_data.time }}s</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Xception Card -->
+                    <div class="col-md-6">
+                        <div class="result-card h-100 p-4 rounded-4 d-flex flex-column bg-gradient-dark border border-secondary border-opacity-50">
+                            <h5 class="fw-bold text-white text-center mb-4">Xception</h5>
+                            <div class="text-center mb-4">
+                                <div class="img-wrapper rounded-4 p-2 bg-dark d-inline-block">
+                                    <img src="{{ xcep_data.hm }}" class="img-fluid rounded-3 scanner-fx" style="max-height: 250px; object-fit: contain;">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <h4 class="fw-bold text-center mb-4 py-2 bg-dark rounded-3 
+                                    {% if 'Cacat' in xcep_data.class %}text-danger{% elif 'Manual' in xcep_data.class %}text-warning{% else %}text-success{% endif %}">
+                                    {{ xcep_data.class }}
+                                </h4>
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="metric-glass p-3 rounded-3 text-center">
+                                            <p class="text-muted small fw-semibold mb-1">Keyakinan</p>
+                                            <h4 class="text-white fw-bold mb-0">{{ xcep_data.conf }}%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="metric-glass p-3 rounded-3 text-center">
+                                            <p class="text-muted small fw-semibold mb-1">Kecepatan</p>
+                                            <h4 class="text-warning fw-bold mb-0">{{ xcep_data.time }}s</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% elif mode == 'single' %}
+                <!-- VIEW: SINGLE MODEL -->
+                <div class="row h-100 align-items-center">
+                    <div class="col-md-5 text-center">
+                        <div class="img-wrapper p-2 bg-dark rounded-4 d-inline-block shadow-lg">
+                            <img src="{{ hm_url }}" class="img-fluid rounded-3 scanner-fx" style="max-height: 380px;">
+                        </div>
+                    </div>
+                    <div class="col-md-7 ps-lg-5">
+                        <h6 class="text-primary fw-bold tracking-tight mb-2">ENGINE AKTIF: {{ model_used }}</h6>
+                        
+                        <!-- Logika Warna Human-in-the-loop -->
+                        <h1 class="fw-bold mb-4 
+                            {% if 'Cacat' in result %}text-danger
+                            {% elif 'Manual' in result %}text-warning
+                            {% else %}text-success{% endif %}" style="font-size: 3rem;">
+                            {{ result }}
+                        </h1>
+                        
+                        <div class="metric-glass p-4 rounded-4 mb-4 border {% if confidence < 85.0 %}border-warning border-opacity-50{% else %}border-secondary border-opacity-25{% endif %}">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted fw-semibold">Tingkat Keyakinan Model</span>
+                                <span class="fw-bold {% if confidence < 85.0 %}text-warning{% else %}text-white{% endif %} fs-5">{{ confidence }}%</span>
+                            </div>
+                            <div class="progress bg-dark" style="height: 12px; border-radius: 6px;">
+                                <div class="progress-bar {% if confidence < 85.0 %}bg-warning{% else %}bg-primary{% endif %} progress-bar-striped progress-bar-animated" style="width: {{ confidence }}%; border-radius: 6px;"></div>
+                            </div>
+                            {% if confidence < 85.0 %}
+                            <small class="text-warning mt-2 d-block"><i class="fa-solid fa-triangle-exclamation"></i> Keyakinan di bawah 85%. Disarankan inspeksi manual QC.</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="metric-glass p-4 rounded-4 d-flex align-items-center justify-content-between">
+                            <span class="text-muted fw-semibold"><i class="fa-solid fa-stopwatch text-warning me-2"></i> Kecepatan Eksekusi (Inference)</span>
+                            <span class="fs-3 fw-bold text-warning">{{ time }} detik</span>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <!-- VIEW: EMPTY STATE -->
+                <div class="d-flex flex-column align-items-center justify-content-center h-100 text-secondary">
+                    <div class="icon-box bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 100px; height: 100px;">
+                        <i class="fa-solid fa-display fs-1"></i>
+                    </div>
+                    <h3 class="fw-bold text-white opacity-75">Sistem Standby</h3>
+                    <p>Pilih satu gambar untuk analisis mendalam (Grad-CAM), atau pilih puluhan gambar sekaligus untuk Pemindaian Massal (Batch Mode).</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        document.getElementById('loader-overlay').classList.remove('d-none');
+    });
+
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.weight = '600';
+
+    const ctxQual = document.getElementById('qualityChart').getContext('2d');
+    new Chart(ctxQual, {
+        type: 'doughnut',
+        data: {
+            labels: ['Normal (OK)', 'Cacat (Defect)', 'Manual Review'],
+            datasets: [{
+                data: [{{ stats.normal }}, {{ stats.defect }}, {{ stats.review }}],
+                backgroundColor: ['#10b981', '#ef4444', '#f59e0b'], // Green, Red, Yellow
+                borderWidth: 0, hoverOffset: 5
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { padding: 15, boxWidth: 12 } } },
+            cutout: '70%' 
+        }
+    });
+
+    const ctxSpd = document.getElementById('speedChart').getContext('2d');
+    new Chart(ctxSpd, {
+        type: 'bar',
+        data: {
+            labels: ['ResNet50', 'Xception'],
+            datasets: [{
+                data: [{{ stats.avg_res }}, {{ stats.avg_xcep }}],
+                backgroundColor: ['#3b82f6', '#f59e0b'], // Blue & Amber
+                borderRadius: 6
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false,
+            scales: { 
+                y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, 
+                x: { grid: { display: false } } 
+            }, 
+            plugins: { legend: { display: false } } 
+        }
+    });
+</script>
+
+</body>
+</html>

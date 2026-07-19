@@ -1,8 +1,7 @@
 gunicorn
 opencv-python-headless
 gdown
-tensorflow
-tf-keras
+tensorflow>=2.16.1
 flask
 werkzeug
 numpy

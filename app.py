@@ -2,7 +2,6 @@ import os
 import time
 import cv2
 import numpy as np
-os.environ['TF_USE_LEGACY_KERAS'] = '1'
 import tensorflow as tf
 import gdown
 from datetime import datetime

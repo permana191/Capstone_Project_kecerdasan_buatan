@@ -50,10 +50,10 @@ def bersihkan_bug_keras(filepath):
                 f.attrs['model_config'] = json.dumps(config).encode('utf-8')
                 print(f"[SISTEM] File {filepath} berhasil dibedah dan dibersihkan!")
     except Exception as e:
-        print(f"[SISTEM] Gagal atau tidak perlu membedah {filepath}: {e}")
+        print(f"[SISTEM] Gagal membedah {filepath}: {e}")
 
 # ==========================================
-# 2. PROSES UNDUH, BERSIHKAN & MUAT MODEL
+# 2. PROSES UNDUH CERDAS, BERSIHKAN & MUAT MODEL
 # ==========================================
 print("[SISTEM] Menginisialisasi Engine AI (ResNet50 & Xception)...")
 
@@ -62,13 +62,26 @@ XCEPTION_ID = '1o2hyJI6P8QTcwYPK3ag5n_XmLKjGC7g9'
 resnet_path = 'models/resnet50_best.h5'
 xception_path = 'models/xception_best.h5'
 
-if not os.path.exists(resnet_path):
-    print("[DOWNLOAD] Mengunduh ResNet50...")
-    gdown.download(f'https://drive.google.com/uc?id={RESNET_ID}', resnet_path, quiet=False)
+def cek_dan_unduh(filepath, gdrive_id, nama_model):
+    """
+    Mengecek apakah file ada dan ukurannya valid. 
+    Jika file korup/terlalu kecil (< 10MB), hapus dan unduh ulang.
+    """
+    if os.path.exists(filepath):
+        ukuran_mb = os.path.getsize(filepath) / (1024 * 1024)
+        if ukuran_mb < 10.0:  # Model AI pasti lebih besar dari 10MB
+            print(f"[WARNING] File {nama_model} korup atau terlalu kecil ({ukuran_mb:.2f} MB). Menghapus file...")
+            os.remove(filepath)
+        else:
+            print(f"[SISTEM] File {nama_model} aman dan siap digunakan ({ukuran_mb:.2f} MB).")
+            return
 
-if not os.path.exists(xception_path):
-    print("[DOWNLOAD] Mengunduh Xception...")
-    gdown.download(f'https://drive.google.com/uc?id={XCEPTION_ID}', xception_path, quiet=False)
+    print(f"[DOWNLOAD] Mengunduh {nama_model} dari Google Drive...")
+    gdown.download(f'https://drive.google.com/uc?id={gdrive_id}', filepath, quiet=False)
+
+# Eksekusi fungsi download cerdas
+cek_dan_unduh(resnet_path, RESNET_ID, "ResNet50")
+cek_dan_unduh(xception_path, XCEPTION_ID, "Xception")
 
 # Bersihkan file sebelum di-load oleh TensorFlow
 print("[SISTEM] Memulai pembersihan file .h5...")

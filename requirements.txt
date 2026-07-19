@@ -10,3 +10,4 @@ Pillow
 ipykernel
 gunicorn
 opencv-python-headless
+gdown

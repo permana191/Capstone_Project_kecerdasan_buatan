@@ -1,7 +1,12 @@
-gunicorn
-opencv-python-headless
-gdown
+Flask
+Werkzeug
 tensorflow>=2.16.1
-flask
-werkzeug
+opencv-python-headless
+matplotlib
+seaborn
+pandas
 numpy
+scikit-learn
+Pillow
+gunicorn
+gdown

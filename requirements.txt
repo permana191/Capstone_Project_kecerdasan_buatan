@@ -1,7 +1,6 @@
 Flask
 Werkzeug
 tensorflow
-opencv-python
 matplotlib
 seaborn
 pandas
@@ -10,3 +9,4 @@ scikit-learn
 Pillow
 ipykernel
 gunicorn
+opencv-python-headless

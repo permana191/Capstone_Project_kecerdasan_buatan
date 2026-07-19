@@ -3,6 +3,7 @@ import time
 import cv2
 import numpy as np
 import tensorflow as tf
+import gdown
 from datetime import datetime
 from flask import Flask, request, render_template, url_for
 from werkzeug.utils import secure_filename
@@ -16,18 +17,47 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# ==============================================================================
+# ALGORITMA SMART DOWNLOADER (GOOGLE DRIVE)
+# Mencegah konflik dengan file Pointer LFS yang tertinggal di GitHub
+# ==============================================================================
+os.makedirs('models', exist_ok=True)
+
+RESNET_ID = '194ISRkiUYhBoRHK288wY-pcK3GIghLbP'
+XCEPTION_ID = '1o2hyJI6P8QTcwYPK3ag5n_XmLKjGC7g9'
+
+resnet_path = 'models/resnet50_best.h5'
+xception_path = 'models/xception_best.h5'
+
+def download_model_if_needed(file_id, output_path, model_name):
+    # Jika file ada, tetapi ukurannya di bawah 10MB (kemungkinan file Pointer LFS palsu), hapus!
+    if os.path.exists(output_path) and os.path.getsize(output_path) < 10000000:
+        print(f"[SISTEM] Mendeteksi file {model_name} palsu/rusak. Menghapus file lama...")
+        os.remove(output_path)
+        
+    # Jika file benar-benar tidak ada, mulai unduh dari Google Drive
+    if not os.path.exists(output_path):
+        print(f"[DOWNLOAD] Memulai pengunduhan {model_name} asli dari Google Drive...")
+        gdown.download(id=file_id, output=output_path, quiet=False)
+        print(f"[DOWNLOAD] {model_name} berhasil diunduh dan diamankan!")
+
+print("[SISTEM] Memvalidasi integritas file model AI...")
+download_model_if_needed(RESNET_ID, resnet_path, "ResNet50")
+download_model_if_needed(XCEPTION_ID, xception_path, "Xception")
+
 print("[SISTEM] Menginisialisasi Engine AI (ResNet50 & Xception)...")
-MODEL_RESNET = load_model('models/resnet50_best.h5')
-MODEL_XCEPTION = load_model('models/xception_best.h5')
+MODEL_RESNET = load_model(resnet_path)
+MODEL_XCEPTION = load_model(xception_path)
 print("[SISTEM] Seluruh Engine AI Siap Digunakan!")
+# ==============================================================================
 
 CLASS_NAMES = ['Produk Cacat (Defect)', 'Produk Normal (OK)']
-THRESHOLD_LIMIT = 85.0 # Ambang batas Human-in-the-Loop (85%)
+THRESHOLD_LIMIT = 85.0 
 
 # Memori Global untuk Logs & Data Grafik (Chart.js)
 inspection_logs = []
 dashboard_stats = {
-    'total': 0, 'normal': 0, 'defect': 0, 'review': 0, # Tambahan kategori review
+    'total': 0, 'normal': 0, 'defect': 0, 'review': 0,
     'resnet_times': [], 'xcep_times': []
 }
 
@@ -98,7 +128,6 @@ def run_inference(filepath, filename, model_name, use_gradcam=True):
     raw_class = CLASS_NAMES[np.argmax(preds, axis=1)[0]]
     confidence = float(np.max(preds) * 100)
     
-    # 1. LOGIKA HUMAN-IN-THE-LOOP (AMBANG BATAS)
     if confidence < THRESHOLD_LIMIT:
         final_class = "⚠️ Inspeksi Manual"
         dashboard_stats['review'] += 1
@@ -117,29 +146,24 @@ def run_inference(filepath, filename, model_name, use_gradcam=True):
 def index():
     global inspection_logs, dashboard_stats
     
-    # Kalkulasi ulang metrik untuk frontend
     avg_res = sum(dashboard_stats['resnet_times']) / len(dashboard_stats['resnet_times']) if dashboard_stats['resnet_times'] else 0
     avg_xcep = sum(dashboard_stats['xcep_times']) / len(dashboard_stats['xcep_times']) if dashboard_stats['xcep_times'] else 0
     stats_data = {
         'normal': dashboard_stats['normal'], 'defect': dashboard_stats['defect'], 'review': dashboard_stats['review'],
-        'avg_res': round(avg_res, 3), 'avg_xcep': round(avg_xcep, 3)
+        'avg_res': round(avg_res, 3), 'avg_xcep': round(avg_xcep, 3),
+        'total': dashboard_stats['total']
     }
 
     if request.method == 'POST':
-        # 2. LOGIKA BATCH PROCESSING (Menerima Multi-File)
         files = request.files.getlist('file')
         model_choice = request.form.get('model_choice')
         timestamp = datetime.now().strftime("%H:%M:%S")
 
-        # Jika tidak ada file yang valid
         if not files or files[0].filename == '':
             return render_template('index.html', logs=inspection_logs, stats=stats_data)
 
-        # A. JIKA FILE LEBIH DARI SATU (BATCH MODE)
         if len(files) > 1:
             batch_results = []
-            
-            # Jika user memilih komparasi pada batch, kita paksa pakai Xception agar tidak crash memori
             active_model = 'xception' if model_choice == 'compare' else model_choice 
             
             for file in files:
@@ -148,24 +172,17 @@ def index():
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(filepath)
                     
-                    # Eksekusi tanpa Grad-CAM agar super cepat
                     p_class, p_conf, p_time, _ = run_inference(filepath, filename, active_model, use_gradcam=False)
-                    
                     batch_results.append({
                         'file': filename, 'status': p_class, 
                         'conf': round(p_conf, 2), 'time': round(p_time, 3)
                     })
                     
-                    # Tambah ke log global
-                    inspection_logs.insert(0, {'time': timestamp, 'model': active_model.capitalize(), 'status': p_class.split()[1] if len(p_class.split())>1 else p_class, 'speed': f"{p_time:.3f}s"})
-            
-            # Update statistik final setelah batch selesai
-            stats_data['normal'], stats_data['defect'], stats_data['review'] = dashboard_stats['normal'], dashboard_stats['defect'], dashboard_stats['review']
+            stats_data['normal'], stats_data['defect'], stats_data['review'], stats_data['total'] = dashboard_stats['normal'], dashboard_stats['defect'], dashboard_stats['review'], dashboard_stats['total']
             
             return render_template('index.html', mode='batch', batch_results=batch_results, 
-                                   model_used=active_model.capitalize(), logs=inspection_logs[:15], stats=stats_data)
+                                   model_used=active_model.capitalize(), stats=stats_data)
 
-        # B. JIKA HANYA SATU FILE (SINGLE / COMPARE MODE)
         else:
             file = files[0]
             filename = secure_filename(file.filename)
@@ -176,30 +193,24 @@ def index():
                 res_class, res_conf, res_time, res_hm = run_inference(filepath, filename, 'resnet50', use_gradcam=True)
                 xcep_class, xcep_conf, xcep_time, xcep_hm = run_inference(filepath, filename, 'xception', use_gradcam=True)
                 
-                stats_data['normal'], stats_data['defect'], stats_data['review'] = dashboard_stats['normal'], dashboard_stats['defect'], dashboard_stats['review']
-                inspection_logs.insert(0, {
-                    'time': timestamp, 'model': 'Head-to-Head',
-                    'status': f"R:{res_class.split()[1] if len(res_class.split())>1 else res_class} | X:{xcep_class.split()[1] if len(xcep_class.split())>1 else xcep_class}",
-                    'speed': f"R:{res_time:.2f}s | X:{xcep_time:.2f}s"
-                })
+                stats_data['normal'], stats_data['defect'], stats_data['review'], stats_data['total'] = dashboard_stats['normal'], dashboard_stats['defect'], dashboard_stats['review'], dashboard_stats['total']
                 
                 return render_template('index.html', mode='compare', 
                                        res_data={'class': res_class, 'conf': round(res_conf, 2), 'time': round(res_time, 3), 'hm': url_for('static', filename=f'uploads/{res_hm}')},
                                        xcep_data={'class': xcep_class, 'conf': round(xcep_conf, 2), 'time': round(xcep_time, 3), 'hm': url_for('static', filename=f'uploads/{xcep_hm}')},
-                                       logs=inspection_logs[:15], stats=stats_data)
+                                       stats=stats_data)
             else:
                 p_class, p_conf, p_time, hm = run_inference(filepath, filename, model_choice, use_gradcam=True)
                 model_disp = "Xception" if model_choice == 'xception' else "ResNet50"
                 
-                stats_data['normal'], stats_data['defect'], stats_data['review'] = dashboard_stats['normal'], dashboard_stats['defect'], dashboard_stats['review']
-                inspection_logs.insert(0, {'time': timestamp, 'model': model_disp, 'status': p_class.split()[1] if len(p_class.split())>1 else p_class, 'speed': f"{p_time:.3f}s"})
+                stats_data['normal'], stats_data['defect'], stats_data['review'], stats_data['total'] = dashboard_stats['normal'], dashboard_stats['defect'], dashboard_stats['review'], dashboard_stats['total']
                 
                 return render_template('index.html', mode='single', 
                                        result=p_class, confidence=round(p_conf, 2), time=round(p_time, 3),
                                        model_used=model_disp, hm_url=url_for('static', filename=f'uploads/{hm}'),
-                                       logs=inspection_logs[:15], stats=stats_data)
+                                       stats=stats_data)
                                    
-    return render_template('index.html', logs=inspection_logs[:15], stats=stats_data)
+    return render_template('index.html', stats=stats_data)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

@@ -48,7 +48,7 @@ Untuk mengatasi kelemahan kotak hitam (*black-box*) pada algoritma kecerdasan bu
 Sebelum menjalankan aplikasi, pastikan Anda telah menginstal **Python 3.8+** di komputer Anda.
 
 1. **Clone repositori ini (atau unduh zip folder proyek):**
-   > git clone https://github.com/username-anda/vision-core.git
+   > git clone (https://github.com/permana191/Capstone_Project_kecerdasan_buatan)
    > cd vision-core
 
 2. **Buat dan aktifkan Virtual Environment (Sangat Direkomendasikan):**

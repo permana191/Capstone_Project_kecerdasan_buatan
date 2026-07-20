@@ -87,5 +87,6 @@ Kedua arsitektur diuji menggunakan skenario pembagian data yang ketat. Berdasark
 Aplikasi ini telah berhasil di-deploy, lolos dari *bug deserialisasi* memori, dan dapat diakses secara publik menggunakan domain komersial tersertifikasi (SSL) melalui tautan berikut:
 **[https://www.capstone-project-kecerdasanbuatan-sigit.my.id](https://www.capstone-project-kecerdasanbuatan-sigit.my.id)**
 **[[https://youtu.be/RjMmWIbMCXU](https://youtu.be/RjMmWIbMCXU))**
+
 ---
 *Dikembangkan oleh **Sigit Miraj Permana** (NIM: 301240037)*
